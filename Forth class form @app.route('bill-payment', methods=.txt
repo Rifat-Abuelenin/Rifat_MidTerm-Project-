@@ -1,0 +1,31 @@
+@app.route('/bill-payment', methods=['GET', 'POST'])
+@login_required
+def bill_payment():
+    form = BillPaymentForm()
+    
+    if form.validate_on_submit():
+        payee = form.payee.data
+        amount = form.amount.data
+        payment_method = form.payment_method.data
+        
+        # Create a Stripe charge
+        if payment_method == 'card':
+            try:
+                charge = stripe.Charge.create(
+                    amount=int(amount * 100),
+                    currency='usd',
+                    description='Bill Payment',
+                    source=request.form['stripeToken']
+                )
+            except stripe.error.CardError as e:
+                # Card declined
+                flash('Card declined. Please try again.', 'error')
+                return redirect(url_for('bill_payment'))
+        else:
+            # Bank transfer
+            # Process the payment and update the database
+            
+            flash('Payment successful!', 'success')
+            return redirect(url_for('dashboard'))
+    
+    return render_template('bill_payment.html', form=form)
